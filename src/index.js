@@ -9,20 +9,55 @@ app.use(cors());
 
 const users = [];
 
+function findAccountByUsername(username) {
+  const index = users.findIndex(user => user.username === username);
+  const user = users.find(user => user.username === username);
+  return { index, user }
+}
+
+function findUserTodoById(user, todoId) {
+  const index = user.todos.findIndex(todo => todo.id === todoId);
+  const todo = user.todos.find(todo => todo.id === todoId);
+  return {index, todo};
+}
+
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers
+  const {index, user} = findAccountByUsername(username)
+  if (index === -1) return response.status(404).json({ error: "Username not found" });
+  request.user = user 
+  return next();
+
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const {pro, todos} = request.user
+  
+  if (!pro && todos.length >= 10) return response.status(403).json({ error: "Free plan user can have only 10 todos" })
+  return next();
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const {username} = request.headers;
+  const {id} = request.params
+  if(!validate(id)) return response.status(400).json({ error: "Invalid ID" })
+  const {user, index: userIndex} = findAccountByUsername(username)
+  if (userIndex === -1) return response.status(404).json({ error: "Username not found" });
+  const { index: todoIndex, todo } = findUserTodoById(user, id);
+  if (todoIndex === -1)return response.status(404).json({ error: "Todo not found for username" })
+  request.todo = todo
+  request.user = user
+  return next();
+  
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+  if (!validate(id)) return response.status(400).json({ error: "Invalid ID" })
+  const user = users.find(user => user.id === id);
+  if (!user) return response.status(404).json({error: "Invalid ID"});
+  request.user = user;
+  return next();
 }
 
 app.post('/users', (request, response) => {
